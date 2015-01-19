@@ -46,6 +46,7 @@ import org.opendaylight.controller.sal.packet.TCP;
 import org.opendaylight.controller.sal.utils.EtherTypes;
 import org.opendaylight.controller.sal.utils.Status;
 import org.opendaylight.controller.switchmanager.ISwitchManager;
+import org.opendaylight.controller.topologymanager.ITopologyManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -65,6 +66,7 @@ public class PacketHandler implements IListenDataPacket {
     private IDataPacketService dataPacketService;
     private IFlowProgrammerService flowProgrammerService;
     private ISwitchManager switchManager;
+    private ITopologyManager topologyManager;
     private InetAddress publicInetAddress;
     private InetAddress server1Address;
     private InetAddress server2Address;
@@ -161,6 +163,27 @@ public class PacketHandler implements IListenDataPacket {
             switchManager = null;
         }
     }
+
+    /**
+    * Sets a reference to the requested TopologyManagerService
+    */
+    void setTopologyManagerService(ITopologyManager s) {
+      log.trace("Set TopologyManagerService.");
+
+      topologyManager = s;
+    }
+
+    /**
+    * Unsets SwitchManagerService
+    */
+    void unsetTopologyManagerService(ITopologyManager s) {
+      log.trace("Removed TologyManagerService.");
+
+      if (topologyManager == s) {
+        topologyManager = null;
+      }
+    }
+
 
     @Override
     public PacketResult receiveDataPacket(RawPacket inPkt) {
