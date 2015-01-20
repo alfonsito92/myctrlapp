@@ -1,5 +1,5 @@
 /**
-Copyright (C) 2015  Cristian Alfonso Prieto Sánchez y Manuel Sánchez López
+Copyright (C) 2015  Cristian Alfonso Prieto Sánchez
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
