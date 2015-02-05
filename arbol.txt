@@ -1,0 +1,31 @@
+myctrlapp/
+├── arbol.txt
+├── LICENSE.txt
+├── META-INF
+│   └── MANIFEST.MF
+├── pom.xml
+├── README.md
+├── src
+│   └── main
+│       └── java
+│           └── ugr
+│               └── cristian
+│                   └── myctrlapp
+│                       ├── Activator.java
+│                       └── PacketHandler.java
+└── target
+    ├── classes
+    │   └── ugr
+    │       └── cristian
+    │           └── myctrlapp
+    │               ├── Activator.class
+    │               └── PacketHandler.class
+    ├── maven-status
+    │   └── maven-compiler-plugin
+    │       └── compile
+    │           └── default-compile
+    │               ├── createdFiles.lst
+    │               └── inputFiles.lst
+    └── myctrlapp-0.2.jar
+
+16 directories, 12 files

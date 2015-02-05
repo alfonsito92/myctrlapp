@@ -31,6 +31,8 @@ import org.opendaylight.controller.sal.action.SetNwSrc;
 import org.opendaylight.controller.sal.core.ConstructionException;
 import org.opendaylight.controller.sal.core.Node;
 import org.opendaylight.controller.sal.core.NodeConnector;
+import org.opendaylight.controller.sal.core.Path;
+import org.opendaylight.controller.sal.core.Edge;
 import org.opendaylight.controller.sal.flowprogrammer.Flow;
 import org.opendaylight.controller.sal.flowprogrammer.IFlowProgrammerService;
 import org.opendaylight.controller.sal.match.Match;
@@ -45,8 +47,13 @@ import org.opendaylight.controller.sal.packet.RawPacket;
 import org.opendaylight.controller.sal.packet.TCP;
 import org.opendaylight.controller.sal.utils.EtherTypes;
 import org.opendaylight.controller.sal.utils.Status;
+import org.opendaylight.controller.sal.routing.IRouting;
 import org.opendaylight.controller.switchmanager.ISwitchManager;
 import org.opendaylight.controller.topologymanager.ITopologyManager;
+import edu.uci.ics.jung.algorithms.shortestpath.DijkstraShortestPath;
+import edu.uci.ics.jung.graph.Graph;
+import edu.uci.ics.jung.graph.SparseMultigraph;
+import edu.uci.ics.jung.graph.util.EdgeType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -63,6 +70,7 @@ public class PacketHandler implements IListenDataPacket {
     private static final String SERVER1_CONNECTOR_NAME = "s1-eth1";
     private static final String SERVER2_CONNECTOR_NAME = "s1-eth2";
 
+
     private IDataPacketService dataPacketService;
     private IFlowProgrammerService flowProgrammerService;
     private ISwitchManager switchManager;
@@ -71,6 +79,8 @@ public class PacketHandler implements IListenDataPacket {
     private InetAddress server1Address;
     private InetAddress server2Address;
     private int serverNumber = 0;
+    DijkstraShortestPath<Node, Edge> mtp; // Max Throughput Path
+    private IRouting rt;
 
     static private InetAddress intToInetAddress(int i) {
         byte b[] = new byte[] { (byte) ((i>>24)&0xff), (byte) ((i>>16)&0xff), (byte) ((i>>8)&0xff), (byte) (i&0xff) };
@@ -191,6 +201,7 @@ public class PacketHandler implements IListenDataPacket {
         NodeConnector ingressConnector = inPkt.getIncomingNodeConnector();
         // The node that received the packet ("switch")
         Node node = ingressConnector.getNode();
+        rt.clearMaxThroughput();
 
         log.trace("Packet from " + node.getNodeIDString() + " " + ingressConnector.getNodeConnectorIDString());
 
