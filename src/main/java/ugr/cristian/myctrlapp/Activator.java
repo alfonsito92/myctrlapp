@@ -25,7 +25,13 @@ import org.opendaylight.controller.sal.core.ComponentActivatorAbstractBase;
 import org.opendaylight.controller.sal.flowprogrammer.IFlowProgrammerService;
 import org.opendaylight.controller.sal.packet.IDataPacketService;
 import org.opendaylight.controller.sal.packet.IListenDataPacket;
+import org.opendaylight.controller.sal.routing.IRouting;
 import org.opendaylight.controller.switchmanager.ISwitchManager;
+import org.opendaylight.controller.topologymanager.ITopologyManager;
+import org.opendaylight.controller.statisticsmanager.IStatisticsManager;
+
+import ugr.cristian.dijkstra_implementation.DijkstraImplementation;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -68,6 +74,24 @@ public class Activator extends ComponentActivatorAbstractBase {
                     ISwitchManager.class).setCallbacks(
                     "setSwitchManagerService", "unsetSwitchManagerService")
                     .setRequired(true));
+
+            // Need SwitchManager service for enumerating ports of switch
+            /*c.add(createContainerServiceDependency(containerName).setService(
+                    ITopologyManager.class).setCallbacks(
+                    "setTopologyManagerService", "unsetTopologyManagerService")
+                    .setRequired(true));*/
+
+            c.add(createContainerServiceDependency(containerName).setService(
+                    IStatisticsManager.class).setCallbacks(
+                    "setStatisticsManagerService", "unsetStatisticsManagerService")
+                    .setRequired(true));
+
+            c.add(createContainerServiceDependency(containerName).setService(
+                    IRouting.class).setCallbacks(
+                    "setRoutingService", "unsetRoutingService")
+                    .setRequired(true));
+                    
+
         }
 
     }

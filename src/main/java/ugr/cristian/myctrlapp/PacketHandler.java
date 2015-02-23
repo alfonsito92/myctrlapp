@@ -21,6 +21,9 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Set;
 
 import org.opendaylight.controller.sal.action.Action;
 import org.opendaylight.controller.sal.action.Output;
@@ -30,6 +33,9 @@ import org.opendaylight.controller.sal.action.SetNwDst;
 import org.opendaylight.controller.sal.action.SetNwSrc;
 import org.opendaylight.controller.sal.core.ConstructionException;
 import org.opendaylight.controller.sal.core.Node;
+import org.opendaylight.controller.sal.core.Edge;
+import org.opendaylight.controller.sal.core.Path;
+import org.opendaylight.controller.sal.core.Property;
 import org.opendaylight.controller.sal.core.NodeConnector;
 import org.opendaylight.controller.sal.flowprogrammer.Flow;
 import org.opendaylight.controller.sal.flowprogrammer.IFlowProgrammerService;
@@ -43,9 +49,16 @@ import org.opendaylight.controller.sal.packet.Packet;
 import org.opendaylight.controller.sal.packet.PacketResult;
 import org.opendaylight.controller.sal.packet.RawPacket;
 import org.opendaylight.controller.sal.packet.TCP;
+import org.opendaylight.controller.sal.reader.NodeConnectorStatistics;
 import org.opendaylight.controller.sal.utils.EtherTypes;
+import org.opendaylight.controller.sal.utils.IPProtocols;
 import org.opendaylight.controller.sal.utils.Status;
 import org.opendaylight.controller.switchmanager.ISwitchManager;
+import org.opendaylight.controller.topologymanager.ITopologyManager;
+import org.opendaylight.controller.statisticsmanager.IStatisticsManager;
+
+import ugr.cristian.dijkstra_implementation.DijkstraImplementation;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -64,7 +77,10 @@ public class PacketHandler implements IListenDataPacket {
 
     private IDataPacketService dataPacketService;
     private IFlowProgrammerService flowProgrammerService;
+    DijkstraImplementation implementationDijkstra = new DijkstraImplementation();
     private ISwitchManager switchManager;
+    private ITopologyManager topologyManager;
+    private IStatisticsManager statisticsManager;
     private InetAddress publicInetAddress;
     private InetAddress server1Address;
     private InetAddress server2Address;
@@ -162,12 +178,34 @@ public class PacketHandler implements IListenDataPacket {
         }
     }
 
+    /**
+     * Sets a reference to the requested SwitchManagerService
+     */
+    void setStatisticsManagerService(IStatisticsManager s) {
+        log.trace("Set StatisticsManagerService.");
+
+        statisticsManager = s;
+    }
+
+    /**
+     * Unsets SwitchManagerService
+     */
+    void unsetStatisticsManagerService(IStatisticsManager s) {
+        log.trace("Removed StatisticsManagerService.");
+
+        if (statisticsManager == s) {
+              statisticsManager = null;
+        }
+    }
+
+
     @Override
     public PacketResult receiveDataPacket(RawPacket inPkt) {
         // The connector, the packet came from ("port")
         NodeConnector ingressConnector = inPkt.getIncomingNodeConnector();
         // The node that received the packet ("switch")
         Node node = ingressConnector.getNode();
+        implementationDijkstra.init();
 
         log.trace("Packet from " + node.getNodeIDString() + " " + ingressConnector.getNodeConnectorIDString());
 
@@ -198,6 +236,7 @@ public class PacketHandler implements IListenDataPacket {
                         byte[] serverInstanceMAC;
                         NodeConnector egressConnector;
 
+
                         // Synchronize in case there are two incoming requests at the same time.
                         synchronized (this) {
                             if (serverNumber == 0) {
@@ -215,6 +254,33 @@ public class PacketHandler implements IListenDataPacket {
                             }
                         }
 
+                        /**************************Pruebas Dijkstra*********************/
+
+                        Path result = implementationDijkstra.getRoute(ingressConnector.getNode(), egressConnector.getNode());
+                        log.debug("Obtenido el path gracias a Dijkstra: " + result);
+
+                        /******************Vamos a probar las estadísticas sobre el nodeConnector de salida**************/
+
+                        NodeConnectorStatistics	statistics = statisticsManager.getNodeConnectorStatistics(egressConnector);
+                        //log.trace("Bytes recibidos egress: " + statistics.getReceiveByteCount());
+                        //log.trace("Bytes transmitidos egress: " + statistics.getTransmitByteCount());
+                        //log.trace("Bytes recibidos drop egress: " + statistics.getReceiveDropCount()); // con Link down no se dropaen
+                        //log.trace("Bytes transmitidos dropeados egress: " + statistics.getTransmitDropCount()); // con Link down no se dropean
+                        //log.trace("Bytes transmitidos error egress: " + statistics.getTransmitErrorCount());
+
+                        /**************************************************************/
+
+                        /******************Vamos a probar las estadísticas sobre el nodeConnector de entrada**************/
+
+                        statistics = statisticsManager.getNodeConnectorStatistics(ingressConnector);
+                        //log.trace("Bytes recibidos ingress: " + statistics.getReceiveByteCount());
+                        //log.trace("Bytes transmitidos ingress: " + statistics.getTransmitByteCount());
+                        //log.trace("Bytes recibidos drop ingress: " + statistics.getReceiveDropCount()); // con Link down no se dropaen
+                        //log.trace("Bytes transmitidos dropeados ingress: " + statistics.getTransmitDropCount()); // con Link down no se dropean
+                        //log.trace("Bytes transmitidos error ingress: " + statistics.getTransmitErrorCount());
+
+                        /**************************************************************/
+
                         // Create flow table entry for further incoming packets
 
                         // Match incoming packets of this TCP connection
@@ -222,6 +288,9 @@ public class PacketHandler implements IListenDataPacket {
                         Match match = new Match();
                         match.setField(MatchType.DL_TYPE, (short) 0x0800);  // IPv4 ethertype
                         match.setField(MatchType.NW_PROTO, (byte) 6);       // TCP protocol id
+                        /**************Para indicar el protocolo ICMP se puede hacer uso de lo siguiente******************
+                        match.setField(MacthType.NW_PROTO, IPProtocols.ICMP.byteValue()));
+                        ***************Así conseguimos que sea el flujo instalado para el protocolo ICMP******************/
                         match.setField(MatchType.NW_SRC, clientAddr);
                         match.setField(MatchType.NW_DST, dstAddr);
                         match.setField(MatchType.TP_SRC, (short) clientPort);
@@ -242,12 +311,20 @@ public class PacketHandler implements IListenDataPacket {
                         // Create the flow
                         Flow flow = new Flow(match, actions);
 
+                        short idle = 30; //Valor del timeout Idle
+                        short hard = 60; //Valor del timeout Hard
+                        //Seleccion de Timeout para los flujos
+                        flow.setIdleTimeout(idle);
+                        flow.setHardTimeout(hard);
+
                         // Use FlowProgrammerService to program flow.
-                        Status status = flowProgrammerService.addFlow(node, flow);
+                        Status status = flowProgrammerService.addFlowAsync(node, flow);
                         if (!status.isSuccess()) {
                             log.error("Could not program flow: " + status.getDescription());
                             return PacketResult.CONSUME;
                         }
+
+                        //log.trace("IdleTimeout flujo peticion: " + flow.getIdleTimeout());
 
                         // Create flow table entry for response packets from server to client
 
@@ -255,6 +332,9 @@ public class PacketHandler implements IListenDataPacket {
                         match = new Match();
                         match.setField(MatchType.DL_TYPE, (short) 0x0800);
                         match.setField(MatchType.NW_PROTO, (byte) 6);
+                        /**************Para indicar el protocolo ICMP se puede hacer uso de lo siguiente******************
+                        match.setField(MacthType.NW_PROTO, IPProtocols.ICMP.byteValue()));
+                        ***************Así conseguimos que sea el flujo instalado para el protocolo ICMP******************/
                         match.setField(MatchType.NW_SRC, serverInstanceAddr);
                         match.setField(MatchType.NW_DST, clientAddr);
                         match.setField(MatchType.TP_SRC, (short) dstPort);
@@ -269,7 +349,15 @@ public class PacketHandler implements IListenDataPacket {
                         actions.add(new Output(ingressConnector));
 
                         flow = new Flow(match, actions);
-                        status = flowProgrammerService.addFlow(node, flow);
+
+                        //Seleccion de TimeOut para los flujos
+                        flow.setIdleTimeout(idle);
+                        flow.setHardTimeout(hard);
+
+                        status = flowProgrammerService.addFlowAsync(node, flow);
+
+                        //log.trace("IdleTimeout flujo respuesta: " + flow.getIdleTimeout());
+
                         if (!status.isSuccess()) {
                             log.error("Could not program flow: " + status.getDescription());
                             return PacketResult.CONSUME;
@@ -277,7 +365,7 @@ public class PacketHandler implements IListenDataPacket {
 
                         // Forward initial packet to selected server
 
-                        log.trace("Forwarding packet to " + serverInstanceAddr.toString() + " through port " + egressConnector.getNodeConnectorIDString());
+                        //log.trace("Forwarding packet to " + serverInstanceAddr.toString() + " through port " + egressConnector.getNodeConnectorIDString());
                         ethFrame.setDestinationMACAddress(serverInstanceMAC);
                         ipv4Pkt.setDestinationAddress(serverInstanceAddr);
                         inPkt.setOutgoingNodeConnector(egressConnector);
