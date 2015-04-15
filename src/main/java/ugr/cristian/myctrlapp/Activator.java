@@ -30,8 +30,6 @@ import org.opendaylight.controller.switchmanager.ISwitchManager;
 import org.opendaylight.controller.topologymanager.ITopologyManager;
 import org.opendaylight.controller.statisticsmanager.IStatisticsManager;
 
-import ugr.cristian.dijkstra_implementation.DijkstraImplementation;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -90,7 +88,7 @@ public class Activator extends ComponentActivatorAbstractBase {
                     IRouting.class).setCallbacks(
                     "setRoutingService", "unsetRoutingService")
                     .setRequired(true));
-                    
+
 
         }
 

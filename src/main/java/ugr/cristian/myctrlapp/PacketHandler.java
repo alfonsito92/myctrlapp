@@ -57,8 +57,6 @@ import org.opendaylight.controller.switchmanager.ISwitchManager;
 import org.opendaylight.controller.topologymanager.ITopologyManager;
 import org.opendaylight.controller.statisticsmanager.IStatisticsManager;
 
-import ugr.cristian.dijkstra_implementation.DijkstraImplementation;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -77,7 +75,6 @@ public class PacketHandler implements IListenDataPacket {
 
     private IDataPacketService dataPacketService;
     private IFlowProgrammerService flowProgrammerService;
-    DijkstraImplementation implementationDijkstra = new DijkstraImplementation();
     private ISwitchManager switchManager;
     private ITopologyManager topologyManager;
     private IStatisticsManager statisticsManager;
@@ -205,7 +202,6 @@ public class PacketHandler implements IListenDataPacket {
         NodeConnector ingressConnector = inPkt.getIncomingNodeConnector();
         // The node that received the packet ("switch")
         Node node = ingressConnector.getNode();
-        implementationDijkstra.init();
 
         log.trace("Packet from " + node.getNodeIDString() + " " + ingressConnector.getNodeConnectorIDString());
 
@@ -254,10 +250,6 @@ public class PacketHandler implements IListenDataPacket {
                             }
                         }
 
-                        /**************************Pruebas Dijkstra*********************/
-
-                        Path result = implementationDijkstra.getRoute(ingressConnector.getNode(), egressConnector.getNode());
-                        log.debug("Obtenido el path gracias a Dijkstra: " + result);
 
                         /******************Vamos a probar las estadísticas sobre el nodeConnector de salida**************/
 
